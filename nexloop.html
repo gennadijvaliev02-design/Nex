@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nexloop — AI Agents & Telegram Bots for Business</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #05060f;
+    --bg-2: #0a0c1a;
+    --surface: #0d1020;
+    --surface-2: #131629;
+    --border: rgba(168, 85, 247, 0.15);
+    --border-strong: rgba(168, 85, 247, 0.35);
+    --text: #e8eaf2;
+    --muted: #8b90a8;
+    --dim: #5a5f78;
+    --purple: #a855f7;
+    --blue: #3b82f6;
+    --cyan: #06b6d4;
+    --grad: linear-gradient(135deg, #a855f7 0%, #3b82f6 50%, #06b6d4 100%);
+    --grad-soft: linear-gradient(135deg, rgba(168,85,247,0.15), rgba(59,130,246,0.15), rgba(6,182,212,0.15));
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,h2,h3,h4{font-family:'Space Grotesk', sans-serif; font-weight:600; letter-spacing:-0.02em; line-height:1.15}
+  a{color:inherit; text-decoration:none}
+  img{max-width:100%; display:block}
+
+  /* ---------- Background ---------- */
+  .bg-grid{
+    position: fixed; inset:0; z-index:-2;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(168,85,247,0.18), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 50%, rgba(59,130,246,0.10), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 20% 80%, rgba(6,182,212,0.08), transparent 60%),
+      var(--bg);
+  }
+  .bg-grid::before{
+    content:''; position:absolute; inset:0;
+    background-image:
+      linear-gradient(rgba(168,85,247,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(168,85,247,0.05) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black, transparent 70%);
+  }
+  #neural-canvas{
+    position: fixed; inset:0; z-index:-1; pointer-events:none; opacity:0.6;
+  }
+
+  /* ---------- Layout ---------- */
+  .container{max-width:1200px; margin:0 auto; padding: 0 24px}
+  section{padding: 120px 0; position:relative}
+  @media (max-width: 768px){ section{padding: 80px 0} }
+  @media (max-width: 480px){
+    .container{padding: 0 18px}
+    .card{padding: 22px}
+    .price-card{padding: 28px 22px}
+    .step{padding: 24px}
+    .demo-body{padding: 18px}
+    .hero-stats{gap: 28px}
+  }
+
+  /* ---------- Nav ---------- */
+  nav{
+    position: sticky; top:0; z-index: 100;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    background: rgba(5,6,15,0.6);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 16px 24px; max-width:1200px; margin:0 auto;
+  }
+  .logo{
+    display:flex; align-items:center; gap:10px;
+    font-family:'Space Grotesk'; font-weight:600; font-size:18px;
+  }
+  .logo-mark{
+    width:32px; height:32px; border-radius:8px;
+    background: var(--grad);
+    display:grid; place-items:center;
+    box-shadow: 0 0 20px rgba(168,85,247,0.4);
+    font-size:16px;
+  }
+  .nav-links{display:flex; gap:32px; font-size:14px; color:var(--muted)}
+  .nav-links a{transition:color .2s}
+  .nav-links a:hover{color:var(--text)}
+  .nav-right{display:flex; align-items:center; gap:12px}
+
+  .nav-toggle{
+    display:none; background:none; border:none; cursor:pointer;
+    width:36px; height:36px; padding:0; flex-direction:column;
+    justify-content:center; align-items:center; gap:5px;
+  }
+  .nav-toggle span{
+    display:block; width:22px; height:2px; background:var(--text);
+    border-radius:2px; transition: transform .25s, opacity .25s;
+  }
+  .nav-toggle.open span:nth-child(1){ transform: translateY(7px) rotate(45deg); }
+  .nav-toggle.open span:nth-child(2){ opacity:0; }
+  .nav-toggle.open span:nth-child(3){ transform: translateY(-7px) rotate(-45deg); }
+
+  .mobile-menu{
+    display:none; position:fixed; top:65px; left:0; right:0; z-index:99;
+    background: rgba(8,9,20,0.98); backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    flex-direction:column; padding: 8px 24px 20px;
+    transform: translateY(-10px); opacity:0; pointer-events:none;
+    transition: transform .25s ease, opacity .25s ease;
+  }
+  .mobile-menu.open{ transform:translateY(0); opacity:1; pointer-events:auto; }
+  .mobile-menu a{ padding:14px 0; font-size:16px; border-bottom:1px solid var(--border); color:var(--text); }
+  .mobile-menu a:last-child{ border-bottom:none }
+
+  @media (max-width: 768px){
+    .nav-links{display:none}
+    .nav-toggle{display:flex}
+    .mobile-menu{display:flex}
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding: 13px 24px; border-radius: 10px;
+    font-weight:500; font-size:15px;
+    cursor:pointer; border:none;
+    transition: all .25s ease;
+    font-family:inherit;
+  }
+  .btn-primary{
+    background: var(--grad);
+    color: white;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.1) inset, 0 8px 30px rgba(168,85,247,0.35);
+  }
+  .btn-primary:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.15) inset, 0 12px 40px rgba(168,85,247,0.5);
+  }
+  .btn-ghost{
+    background: rgba(255,255,255,0.03);
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+  }
+  .btn-ghost:hover{
+    background: rgba(168,85,247,0.08);
+    border-color: var(--purple);
+    transform: translateY(-2px);
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    min-height: 90vh;
+    display:flex; align-items:center;
+    padding: 80px 0 120px;
+  }
+  .hero-inner{max-width: 860px; margin:0 auto; text-align:center}
+  .badge{
+    display:inline-flex; align-items:center; gap:8px;
+    padding: 6px 14px; border-radius: 100px;
+    background: rgba(168,85,247,0.08);
+    border: 1px solid var(--border-strong);
+    font-size: 13px; color: var(--muted);
+    margin-bottom: 28px;
+  }
+  .badge-dot{
+    width:6px; height:6px; border-radius:50%;
+    background: #22c55e;
+    box-shadow: 0 0 10px #22c55e;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:1}
+    50%{opacity:0.4}
+  }
+  .hero h1{
+    font-size: clamp(38px, 6vw, 72px);
+    margin-bottom: 24px;
+    letter-spacing: -0.03em;
+  }
+  .hero h1 .grad{
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p{
+    font-size: clamp(16px, 1.6vw, 19px);
+    color: var(--muted);
+    max-width: 640px;
+    margin: 0 auto 40px;
+  }
+  .hero-cta{display:flex; gap:14px; justify-content:center; flex-wrap:wrap}
+  .hero-stats{
+    display:flex; gap:48px; justify-content:center;
+    margin-top: 72px; flex-wrap:wrap;
+  }
+  .stat-num{
+    font-family:'Space Grotesk'; font-size:32px; font-weight:600;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .stat-label{font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em}
+
+  /* ---------- Section heading ---------- */
+  .sec-head{text-align:center; max-width:720px; margin:0 auto 72px}
+  .sec-tag{
+    font-size:13px; color:var(--purple);
+    text-transform:uppercase; letter-spacing:0.15em;
+    margin-bottom:14px; font-weight:500;
+  }
+  .sec-head h2{
+    font-size: clamp(32px, 4.5vw, 48px);
+    margin-bottom:16px;
+  }
+  .sec-head p{color:var(--muted); font-size:17px}
+
+  /* ---------- Cards grid ---------- */
+  .grid{display:grid; gap:24px}
+  .grid-4{grid-template-columns: repeat(4, 1fr)}
+  .grid-3{grid-template-columns: repeat(3, 1fr)}
+  @media (max-width: 960px){
+    .grid-4{grid-template-columns: repeat(2, 1fr)}
+    .grid-3{grid-template-columns: 1fr}
+  }
+  @media (max-width: 560px){
+    .grid-4{grid-template-columns: 1fr}
+  }
+
+  .card{
+    position:relative;
+    padding: 28px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, var(--surface) 0%, var(--bg-2) 100%);
+    border: 1px solid var(--border);
+    transition: transform .35s cubic-bezier(.2,.8,.2,1), border-color .3s;
+    overflow:hidden;
+  }
+  .card::before{
+    content:''; position:absolute; inset:0;
+    background: var(--grad-soft);
+    opacity:0; transition: opacity .35s;
+    pointer-events:none;
+  }
+  .card::after{
+    content:''; position:absolute;
+    width: 300px; height:300px;
+    border-radius:50%;
+    background: radial-gradient(circle, rgba(168,85,247,0.25), transparent 70%);
+    top: var(--my, 50%); left: var(--mx, 50%);
+    transform: translate(-50%, -50%);
+    opacity:0; transition: opacity .3s;
+    pointer-events:none;
+    filter: blur(20px);
+  }
+  .card:hover{
+    transform: translateY(-6px);
+    border-color: var(--border-strong);
+  }
+  .card:hover::before{opacity:1}
+  .card:hover::after{opacity:1}
+  .card-icon{
+    width:48px; height:48px; border-radius:12px;
+    background: var(--grad-soft);
+    border: 1px solid var(--border-strong);
+    display:grid; place-items:center;
+    margin-bottom: 20px;
+    font-size:22px;
+  }
+  .card h3{font-size:20px; margin-bottom:10px}
+  .card p{color:var(--muted); font-size:15px}
+
+  /* ---------- Demos ---------- */
+  .demo-card{
+    padding:0; overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  .demo-preview{
+    aspect-ratio: 4/3;
+    background: var(--surface-2);
+    position:relative;
+    overflow:hidden;
+    border-bottom: 1px solid var(--border);
+  }
+  .demo-body{padding:24px}
+  .demo-body h3{font-size:20px; margin-bottom:8px}
+  .demo-body p{color:var(--muted); font-size:14px; margin-bottom:18px}
+  .demo-link{
+    display:inline-flex; align-items:center; gap:6px;
+    color:var(--purple); font-size:14px; font-weight:500;
+    transition: gap .2s;
+  }
+  .demo-link:hover{gap:10px}
+
+  /* Telegram mockup */
+  .tg-mock{
+    position:absolute; inset:0;
+    background: linear-gradient(180deg, #17212b 0%, #0e1621 100%);
+    padding: 14px;
+    display:flex; flex-direction:column; gap:8px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 12px;
+  }
+  .tg-header{
+    display:flex; align-items:center; gap:8px;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 4px;
+  }
+  .tg-avatar{
+    width:28px; height:28px; border-radius:50%;
+    background: var(--grad);
+    display:grid; place-items:center;
+    font-size:12px; font-weight:600;
+  }
+  .tg-name{font-weight:600; font-size:13px; color:#fff}
+  .tg-status{font-size:10px; color:#6fb3e2}
+  .tg-msg{
+    max-width: 75%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    line-height: 1.35;
+    color:#fff;
+  }
+  .tg-bot{
+    background: #2b5278;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+  .tg-user{
+    background: #2b5278;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  .tg-time{font-size:9px; color: rgba(255,255,255,0.5); margin-top:2px}
+
+  /* ---------- Steps ---------- */
+  .steps{display:grid; grid-template-columns: repeat(3, 1fr); gap:24px; position:relative}
+  @media (max-width: 768px){ .steps{grid-template-columns: 1fr} }
+  .step{
+    padding: 32px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, var(--surface) 0%, var(--bg-2) 100%);
+    border: 1px solid var(--border);
+    position:relative;
+  }
+  .step-num{
+    font-family:'Space Grotesk';
+    font-size: 56px; font-weight:700;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    line-height:1;
+    margin-bottom: 16px;
+  }
+  .step h3{font-size:22px; margin-bottom:10px}
+  .step p{color:var(--muted); font-size:15px}
+
+  /* ---------- Pricing ---------- */
+  .pricing{display:grid; grid-template-columns: repeat(3, 1fr); gap:24px}
+  @media (max-width: 960px){ .pricing{grid-template-columns: 1fr} }
+  .price-card{
+    padding: 36px 32px;
+    border-radius: 20px;
+    background: linear-gradient(180deg, var(--surface) 0%, var(--bg-2) 100%);
+    border: 1px solid var(--border);
+    position:relative;
+    display:flex; flex-direction:column;
+    transition: transform .3s, border-color .3s;
+  }
+  .price-card:hover{transform: translateY(-4px); border-color: var(--border-strong)}
+  .price-card.featured{
+    border-color: transparent;
+    background:
+      linear-gradient(var(--surface), var(--bg-2)) padding-box,
+      var(--grad) border-box;
+    border: 1px solid transparent;
+    box-shadow: 0 0 60px rgba(168,85,247,0.15);
+  }
+  .price-tag{
+    position:absolute; top:-12px; right:24px;
+    padding: 4px 12px; border-radius: 100px;
+    background: var(--grad);
+    font-size:11px; font-weight:600;
+    text-transform:uppercase; letter-spacing:0.08em;
+  }
+  .price-name{font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:12px}
+  .price-amount{
+    font-family:'Space Grotesk';
+    font-size: 36px; font-weight:600;
+    margin-bottom: 8px;
+  }
+  .price-amount span{font-size:16px; color:var(--muted); font-weight:400}
+  .price-desc{color:var(--muted); font-size:14px; margin-bottom:28px; padding-bottom:24px; border-bottom: 1px solid var(--border)}
+  .price-features{list-style:none; margin-bottom:32px; flex:1}
+  .price-features li{
+    padding: 8px 0; font-size:14px; color:var(--text);
+    display:flex; gap:10px; align-items:flex-start;
+  }
+  .price-features li::before{
+    content:''; flex-shrink:0;
+    width:16px; height:16px; border-radius:50%;
+    background: var(--grad-soft);
+    border: 1px solid var(--border-strong);
+    margin-top:3px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a855f7' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+    background-size: 10px; background-position:center; background-repeat:no-repeat;
+  }
+
+  /* ---------- Footer ---------- */
+  footer{
+    padding: 80px 0 40px;
+    border-top: 1px solid var(--border);
+    margin-top: 80px;
+  }
+  .footer-grid{
+    display:grid; grid-template-columns: 2fr 1fr 1fr;
+    gap:48px; margin-bottom:48px;
+  }
+  @media (max-width: 768px){ .footer-grid{grid-template-columns: 1fr} }
+  .footer-brand p{color:var(--muted); font-size:14px; margin-top:16px; max-width:360px}
+  .footer-col h4{font-size:13px; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); margin-bottom:16px; font-weight:500}
+  .footer-col a{
+    display:block; padding: 6px 0; font-size:15px; color:var(--text);
+    transition: color .2s;
+  }
+  .footer-col a:hover{color:var(--purple)}
+  .footer-bottom{
+    padding-top:32px; border-top: 1px solid var(--border);
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:16px;
+    font-size:13px; color:var(--muted);
+  }
+
+  /* ---------- Scroll reveal ---------- */
+  .reveal{
+    opacity:0; transform: translateY(30px);
+    transition: opacity .8s cubic-bezier(.2,.8,.2,1), transform .8s cubic-bezier(.2,.8,.2,1);
+  }
+  .reveal.in{opacity:1; transform:none}
+  .reveal-delay-1{transition-delay:.1s}
+  .reveal-delay-2{transition-delay:.2s}
+  .reveal-delay-3{transition-delay:.3s}
+
+  /* Selection */
+  ::selection{background: rgba(168,85,247,0.3); color:white}
+
+  /* Scrollbar */
+  ::-webkit-scrollbar{width:10px}
+  ::-webkit-scrollbar-track{background:var(--bg)}
+  ::-webkit-scrollbar-thumb{background: var(--surface-2); border-radius:10px}
+  ::-webkit-scrollbar-thumb:hover{background: var(--border-strong)}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<canvas id="neural-canvas"></canvas>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="logo">
+      <div class="logo-mark">⚡</div>
+      <span>Nexloop</span>
+    </a>
+    <div class="nav-links">
+      <a href="#services">Services</a>
+      <a href="#demos">Demos</a>
+      <a href="#process">Process</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://t.me/Mr_HeryFord" target="_blank" rel="noopener" class="btn btn-primary" style="padding:10px 18px; font-size:14px">Book a call</a>
+      <button class="nav-toggle" id="navToggle" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#services">Services</a>
+    <a href="#demos">Demos</a>
+    <a href="#process">Process</a>
+    <a href="#pricing">Pricing</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container hero-inner">
+    <div class="badge reveal">
+      <span class="badge-dot"></span>
+      <span>Available for new projects</span>
+    </div>
+    <h1 class="reveal reveal-delay-1">
+      AI Agents & Telegram Bots<br/>
+      <span class="grad">That Run Your Business 24/7</span>
+    </h1>
+    <p class="reveal reveal-delay-2">
+      I build intelligent booking agents, Telegram Mini Apps, and workflow automations
+      that handle clients, orders, and CRM — without you lifting a finger.
+    </p>
+    <div class="hero-cta reveal reveal-delay-3">
+      <a href="#demos" class="btn btn-primary">
+        See Live Demo
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+      <a href="#contact" class="btn btn-ghost">Get a Quote</a>
+    </div>
+    <div class="hero-stats reveal reveal-delay-3">
+      <div>
+        <div class="stat-num">30+</div>
+        <div class="stat-label">Bots Shipped</div>
+      </div>
+      <div>
+        <div class="stat-num">12</div>
+        <div class="stat-label">Countries</div>
+      </div>
+      <div>
+        <div class="stat-num">24/7</div>
+        <div class="stat-label">Uptime</div>
+      </div>
+      <div>
+        <div class="stat-num">4.9★</div>
+        <div class="stat-label">Client Rating</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section id="services">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div class="sec-tag">What I Build</div>
+      <h2>Automation that actually moves the needle</h2>
+      <p>From conversational AI agents to full-stack Telegram apps — every product is built to replace manual work and scale with your business.</p>
+    </div>
+
+    <div class="grid grid-4">
+      <div class="card reveal">
+        <div class="card-icon">🧠</div>
+        <h3>AI Booking Agents</h3>
+        <p>Conversational agents with context memory that book appointments, qualify leads, and sync with your calendar — like a real receptionist.</p>
+      </div>
+      <div class="card reveal reveal-delay-1">
+        <div class="card-icon">📱</div>
+        <h3>Telegram Mini Apps</h3>
+        <p>Custom web interfaces running inside Telegram — catalogs, dashboards, forms, and checkout flows without leaving the chat.</p>
+      </div>
+      <div class="card reveal reveal-delay-2">
+        <div class="card-icon">⚙️</div>
+        <h3>Workflow Automation</h3>
+        <p>n8n, Make, Google Sheets, Airtable, HubSpot — I wire your tools together so data flows where it needs to, automatically.</p>
+      </div>
+      <div class="card reveal reveal-delay-3">
+        <div class="card-icon">🌐</div>
+        <h3>Business Websites</h3>
+        <p>Fast, conversion-focused landing pages and marketing sites — built with modern stacks, optimized for speed and SEO.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DEMOS -->
+<section id="demos">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div class="sec-tag">Live Demos</div>
+      <h2>Real products, real results</h2>
+      <p>Tap through live Telegram bots currently running for clients across dental, food service, and delivery industries.</p>
+    </div>
+
+    <div class="grid grid-3">
+      <!-- Lumina Dental -->
+      <div class="card demo-card reveal">
+        <div class="demo-preview">
+          <div class="tg-mock">
+            <div class="tg-header">
+              <div class="tg-avatar">L</div>
+              <div>
+                <div class="tg-name">Lumina Dental</div>
+                <div class="tg-status">bot · online</div>
+              </div>
+            </div>
+            <div class="tg-msg tg-bot">
+              Hi! I'm Lumina's booking assistant 🦷<br/>When would you like to come in?
+              <div class="tg-time">10:24</div>
+            </div>
+            <div class="tg-msg tg-user">
+              Tomorrow afternoon maybe?
+              <div class="tg-time">10:25</div>
+            </div>
+            <div class="tg-msg tg-bot">
+              I have 2:30 PM and 4:15 PM open with Dr. Chen. Which works better?
+              <div class="tg-time">10:25</div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-body">
+          <h3>Lumina Dental — AI Booking Agent</h3>
+          <p>AI agent for a dental clinic that books patients on its own, remembers visit history, and runs 24/7 — no human needed.</p>
+          <a href="https://t.me/DentalAmerica_bot" target="_blank" rel="noopener" class="demo-link">Try it live →</a>
+        </div>
+      </div>
+
+      <!-- Shashlychny Dvorik -->
+      <div class="card demo-card reveal reveal-delay-1">
+        <div class="demo-preview">
+          <div class="tg-mock">
+            <div class="tg-header">
+              <div class="tg-avatar" style="background:linear-gradient(135deg,#f59e0b,#dc2626)">🍢</div>
+              <div>
+                <div class="tg-name">Shashlychny Dvorik</div>
+                <div class="tg-status">bot · online</div>
+              </div>
+            </div>
+            <div class="tg-msg tg-user">
+              2 lamb shashlik + lavash + tkemali
+              <div class="tg-time">19:02</div>
+            </div>
+            <div class="tg-msg tg-bot">
+              Got it! 🍢<br/>Total: $32.50<br/>Pickup in 20 min?
+              <div class="tg-time">19:02</div>
+            </div>
+            <div class="tg-msg tg-user">
+              Yes, pickup
+              <div class="tg-time">19:03</div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-body">
+          <h3>Shashlychny Dvorik — AI Order Agent</h3>
+          <p>Telegram bot for a restaurant that takes orders in plain text, understands the menu, and calculates the total automatically.</p>
+          <a href="https://t.me/Shashlychny_dvorick_bot" target="_blank" rel="noopener" class="demo-link">Try it live →</a>
+        </div>
+      </div>
+
+      <!-- DeliveryN8N -->
+      <div class="card demo-card reveal reveal-delay-2">
+        <div class="demo-preview">
+          <div class="tg-mock">
+            <div class="tg-header">
+              <div class="tg-avatar" style="background:linear-gradient(135deg,#06b6d4,#3b82f6)">📦</div>
+              <div>
+                <div class="tg-name">DeliveryN8N</div>
+                <div class="tg-status">bot · online</div>
+              </div>
+            </div>
+            <div class="tg-msg tg-bot">
+              ✅ Order #A421 received.<br/>Processing via n8n workflow...
+              <div class="tg-time">14:10</div>
+            </div>
+            <div class="tg-msg tg-bot">
+              🚚 Courier assigned.<br/>ETA: 25 min · Tracking: #A421
+              <div class="tg-time">14:10</div>
+            </div>
+            <div class="tg-msg tg-user">
+              Perfect, thanks!
+              <div class="tg-time">14:11</div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-body">
+          <h3>DeliveryN8N — Automated Delivery Bot</h3>
+          <p>Fully automated delivery bot on n8n that handles orders end-to-end and integrates with workflow automation.</p>
+          <a href="https://t.me/DeliveryN8N_bot" target="_blank" rel="noopener" class="demo-link">Try it live →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROCESS -->
+<section id="process">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div class="sec-tag">How It Works</div>
+      <h2>From idea to live product in 3 steps</h2>
+      <p>A clear, collaborative process — no surprises, no scope creep, just shipping.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">01</div>
+        <h3>Discovery Call</h3>
+        <p>We hop on a 30-min call, map your workflows, and identify the highest-leverage automations for your business.</p>
+      </div>
+      <div class="step reveal reveal-delay-1">
+        <div class="step-num">02</div>
+        <h3>Custom Build</h3>
+        <p>I design, build, and iterate with you in weekly demos. You see progress in real time — not at the end.</p>
+      </div>
+      <div class="step reveal reveal-delay-2">
+        <div class="step-num">03</div>
+        <h3>Launch & Support</h3>
+        <p>Go live with full documentation, training, and 30 days of priority support. Then we optimize based on real data.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div class="sec-tag">Pricing</div>
+      <h2>Transparent, project-based pricing</h2>
+      <p>Fixed-scope packages. No hourly billing. Pay for outcomes, not time.</p>
+    </div>
+
+    <div class="pricing">
+      <div class="price-card reveal">
+        <div class="price-name">Starter</div>
+        <div class="price-amount">$2,000 <span>– $5,000</span></div>
+        <div class="price-desc">Website + Telegram Mini App</div>
+        <ul class="price-features">
+          <li>Custom landing page</li>
+          <li>Telegram Mini App integration</li>
+          <li>Responsive mobile-first design</li>
+          <li>Basic analytics setup</li>
+          <li>2 weeks delivery</li>
+        </ul>
+        <a href="https://t.me/Mr_HeryFord" target="_blank" rel="noopener" class="btn btn-ghost">Get started</a>
+      </div>
+
+      <div class="price-card featured reveal reveal-delay-1">
+        <div class="price-tag">Most Popular</div>
+        <div class="price-name">Growth</div>
+        <div class="price-amount">+ $1,000 <span>– $2,000</span></div>
+        <div class="price-desc">+ AI Agent layer</div>
+        <ul class="price-features">
+          <li>Everything in Starter</li>
+          <li>Custom AI agent (GPT-4 / Claude)</li>
+          <li>Context memory & RAG</li>
+          <li>Calendar / CRM integrations</li>
+          <li>Conversation analytics</li>
+        </ul>
+        <a href="https://t.me/Mr_HeryFord" target="_blank" rel="noopener" class="btn btn-primary">Get started</a>
+      </div>
+
+      <div class="price-card reveal reveal-delay-2">
+        <div class="price-name">Scale</div>
+        <div class="price-amount">+ $2,000 <span>– $5,000</span></div>
+        <div class="price-desc">+ Admin Dashboard</div>
+        <ul class="price-features">
+          <li>Everything in Growth</li>
+          <li>Custom admin panel</li>
+          <li>Workflow automation (n8n)</li>
+          <li>Multi-user roles & permissions</li>
+          <li>Priority support & SLA</li>
+        </ul>
+        <a href="https://t.me/Mr_HeryFord" target="_blank" rel="noopener" class="btn btn-ghost">Get started</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer id="contact">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="#" class="logo">
+          <div class="logo-mark">⚡</div>
+          <span>Nexloop</span>
+        </a>
+        <p>Independent developer building AI agents and Telegram automation for modern businesses. Based remotely, shipping globally.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <a href="https://t.me/Mr_HeryFord" target="_blank" rel="noopener">Telegram → @Mr_HeryFord</a>
+        <a href="https://instagram.com/byonafortuna" target="_blank" rel="noopener">Instagram → @byonafortuna</a>
+        <a href="https://instagram.com/byonafortuna" target="_blank" rel="noopener">DM → @byonafortuna</a>
+      </div>
+      <div class="footer-col">
+        <h4>Quick links</h4>
+        <a href="#services">Services</a>
+        <a href="#demos">Live demos</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#process">Process</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>© 2026 Nexloop. All rights reserved.</div>
+      <div>Built with ☕ and too much caffeine</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ---------- Neural network background ----------
+  const canvas = document.getElementById('neural-canvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  let w, h;
+  const isMobile = window.innerWidth < 768;
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function resize(){
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+    const divisor = isMobile ? 45000 : 22000;
+    const cap = isMobile ? 28 : 80;
+    const count = Math.min(cap, Math.floor(w * h / divisor));
+    particles = Array.from({length: count}, () => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      r: Math.random() * 1.5 + 0.5
+    }));
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  let mouse = {x: -1000, y: -1000};
+  window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+
+  let running = true;
+  document.addEventListener('visibilitychange', () => {
+    running = !document.hidden;
+    if(running) tick();
+  });
+
+  function tick(){
+    if(!running) return;
+    ctx.clearRect(0,0,w,h);
+
+    // particles
+    for(const p of particles){
+      p.x += p.vx; p.y += p.vy;
+      if(p.x < 0 || p.x > w) p.vx *= -1;
+      if(p.y < 0 || p.y > h) p.vy *= -1;
+
+      // mouse repulsion (desktop only - no pointer position on touch)
+      const dx = p.x - mouse.x, dy = p.y - mouse.y;
+      const d2 = dx*dx + dy*dy;
+      if(d2 < 14000){
+        const f = (14000 - d2) / 14000 * 0.4;
+        p.x += dx / Math.sqrt(d2) * f;
+        p.y += dy / Math.sqrt(d2) * f;
+      }
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(168, 85, 247, 0.6)';
+      ctx.fill();
+    }
+
+    // connections (skip entirely on mobile - O(n^2) is the main perf hit)
+    if(!isMobile){
+      for(let i=0; i<particles.length; i++){
+        for(let j=i+1; j<particles.length; j++){
+          const a = particles[i], b = particles[j];
+          const dx = a.x - b.x, dy = a.y - b.y;
+          const d = Math.sqrt(dx*dx + dy*dy);
+          if(d < 140){
+            const alpha = (1 - d/140) * 0.25;
+            ctx.strokeStyle = `rgba(120, 130, 220, ${alpha})`;
+            ctx.lineWidth = 0.6;
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+
+    requestAnimationFrame(tick);
+  }
+  if(!prefersReducedMotion){ tick(); } else { canvas.style.display = 'none'; }
+
+  // ---------- Scroll reveal ----------
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if(e.isIntersecting){
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // ---------- Mobile menu toggle ----------
+  const navToggle = document.getElementById('navToggle');
+  const mobileMenu = document.getElementById('mobileMenu');
+  navToggle.addEventListener('click', () => {
+    navToggle.classList.toggle('open');
+    mobileMenu.classList.toggle('open');
+  });
+  mobileMenu.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => {
+      navToggle.classList.remove('open');
+      mobileMenu.classList.remove('open');
+    });
+  });
+
+  // ---------- Card spotlight ----------
+  document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+      card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+    });
+  });
+</script>
+
+</body>
+</html>
